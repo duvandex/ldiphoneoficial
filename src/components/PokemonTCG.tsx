@@ -1447,7 +1447,15 @@ export default function PokemonTCG() {
                       <div className="mt-3 pt-2 border-t border-border/50">
                         <div className="flex items-center justify-between">
                           <span className="text-[10px] text-muted-foreground font-bold uppercase">Precio Unit.</span>
-                          <span className="text-xs font-black text-foreground">${item.tcgplayerPrice.toFixed(2)} USD</span>
+                          <div className="flex flex-col items-end">
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase leading-none mb-0.5">Market Prices</span>
+                            <div className="flex flex-col items-end gap-0.5">
+                              <span className="text-xs font-black text-foreground">${item.tcgplayerPrice.toFixed(2)} USD</span>
+                              {item.collectrPrice ? (
+                                <span className="text-[10px] font-black text-indigo-500">${item.collectrPrice.toFixed(2)} (C)</span>
+                              ) : null}
+                            </div>
+                          </div>
                         </div>
                         {item.investedPrice ? (
                           <>
@@ -1586,7 +1594,12 @@ export default function PokemonTCG() {
                           {item.investedPrice ? `$${(item.investedPrice * item.quantity).toFixed(2)}` : '-'}
                         </TableCell>
                         <TableCell className="text-xs font-black font-mono text-right py-4">
-                          ${item.tcgplayerPrice.toFixed(2)}
+                          <div className="flex flex-col items-end gap-0.5">
+                            <span>${item.tcgplayerPrice.toFixed(2)}</span>
+                            {item.collectrPrice ? (
+                              <span className="text-[10px] text-indigo-500 font-bold">${item.collectrPrice.toFixed(2)} (C)</span>
+                            ) : null}
+                          </div>
                         </TableCell>
                         <TableCell className="text-xs font-black font-mono text-amber-600 text-right py-4">
                           ${itemTotalUsd.toFixed(2)}
@@ -2135,9 +2148,17 @@ export default function PokemonTCG() {
                           <p className="text-[9px] text-muted-foreground uppercase truncate font-bold">{item.set}</p>
                           
                           {/* Valuation price info */}
-                          <div className="mt-1 flex items-center gap-1.5">
-                            <span className="text-xs font-black text-amber-500 font-mono">${Number(item.tcgplayerPrice).toFixed(2)}</span>
-                            <span className="text-[9px] text-emerald-600 font-black font-mono">({fmt(item.tcgplayerPrice * usdtRate)})</span>
+                          <div className="mt-1 flex flex-col gap-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-black text-amber-500 font-mono">${Number(item.tcgplayerPrice).toFixed(2)}</span>
+                              <span className="text-[9px] text-emerald-600 font-black font-mono">({fmt(item.tcgplayerPrice * usdtRate)})</span>
+                            </div>
+                            {item.collectrPrice ? (
+                              <div className="flex items-center gap-1">
+                                <span className="text-[9px] font-black text-indigo-500 font-mono">${item.collectrPrice.toFixed(2)} (C)</span>
+                                <span className="text-[8px] text-indigo-400 font-bold font-mono">({fmt(item.collectrPrice * usdtRate)})</span>
+                              </div>
+                            ) : null}
                           </div>
                         </div>
 
