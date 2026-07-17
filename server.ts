@@ -232,113 +232,120 @@ Your tasks:
 6. Output the result in the requested JSON structure. Keep description brief but highly accurate.`,
       };
 
-      // Attempt scanning using allowed Gemini models with fallback, retries, and backoff logic
-      const modelsToTry = ["gemini-flash-latest", "gemini-3.1-flash-lite", "gemini-3.5-flash"];
-      let lastError: any = null;
-      let responseText = "";
+    // Attempt scanning using allowed Gemini models with fallback, retries, and backoff logic
+    const modelsToTry = ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"];
+    let lastError: any = null;
+    let responseText = "";
 
-      for (const modelName of modelsToTry) {
-        // Try each model up to 3 times to mitigate transient 503/UNAVAILABLE errors
-        const maxRetries = 3;
-        let skipRemainingRetries = false;
+    for (const modelName of modelsToTry) {
+      // Try each model up to 3 times to mitigate transient 503/UNAVAILABLE errors
+      const maxRetries = 3;
+      let skipRemainingRetries = false;
 
-        for (let attempt = 1; attempt <= maxRetries; attempt++) {
-          try {
-            console.log(`Attempting scan with model: ${modelName} (Attempt ${attempt}/${maxRetries})`);
-            const response = await ai.models.generateContent({
-              model: modelName,
-              contents: { parts: [imagePart, promptPart] },
-              config: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                  type: Type.OBJECT,
-                  properties: {
-                    type: {
-                      type: Type.STRING,
-                      description: "Must be 'card' or 'sealed' depending on whether it is a single card or a sealed product (like ETB, booster box, UPC, tin, booster pack, etc.)",
-                    },
-                    name: {
-                      type: Type.STRING,
-                      description: "The official name of the Pokémon card or product (e.g. 'Charizard ex' or '151 Ultra Premium Collection')"
-                    },
-                    set: {
-                      type: Type.STRING,
-                      description: "The name of the official TCG set (e.g. 'Scarlet & Violet 151', 'Obsidian Flames')"
-                    },
-                    cardNumber: {
-                      type: Type.STRING,
-                      description: "The card collector number (e.g. '199/165', '223/197'). For sealed products, return an empty string or omit."
-                    },
-                    language: {
-                      type: Type.STRING,
-                      description: "The language of the card/product (e.g. 'Inglés', 'Español', 'Japonés', 'Alemán', 'Francés', 'Italiano', 'Coreano', 'Chino')"
-                    },
-                    rarity: {
-                      type: Type.STRING,
-                      description: "The rarity of the card (e.g. 'Illustration Rare', 'Special Illustration Rare', 'Secret Rare', 'Common', 'Uncommon'). For sealed products, return 'Sealed Product'."
-                    },
-                    tcgplayerPrice: {
-                      type: Type.NUMBER,
-                      description: "The current estimated TCGplayer market price in USD as a floating number (e.g. 119.99)."
-                    },
-                    suggestedImageUrl: {
-                      type: Type.STRING,
-                      description: "A high-quality direct public URL to the official card art or product image, or a valid representative official image URL, or a placeholder."
-                    },
-                    confidenceScore: {
-                      type: Type.NUMBER,
-                      description: "Confidence rating from 0 to 1 of the identification."
-                    },
-                    reasoning: {
-                      type: Type.STRING,
-                      description: "A short professional explanation of how the card/product was identified and the pricing source info."
-                    }
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          console.log(`Attempting scan with model: ${modelName} (Attempt ${attempt}/${maxRetries})`);
+          const response = await ai.models.generateContent({
+            model: modelName,
+            contents: { parts: [imagePart, promptPart] },
+            config: {
+              responseMimeType: "application/json",
+              responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                  type: {
+                    type: Type.STRING,
+                    description: "Must be 'card' or 'sealed' depending on whether it is a single card or a sealed product (like ETB, booster box, UPC, tin, booster pack, etc.)",
                   },
-                  required: ["type", "name", "set", "tcgplayerPrice", "confidenceScore", "reasoning", "language"]
-                }
+                  name: {
+                    type: Type.STRING,
+                    description: "The official name of the Pokémon card or product (e.g. 'Charizard ex' or '151 Ultra Premium Collection')"
+                  },
+                  set: {
+                    type: Type.STRING,
+                    description: "The name of the official TCG set (e.g. 'Scarlet & Violet 151', 'Obsidian Flames')"
+                  },
+                  cardNumber: {
+                    type: Type.STRING,
+                    description: "The card collector number (e.g. '199/165', '223/197'). For sealed products, return an empty string or omit."
+                  },
+                  language: {
+                    type: Type.STRING,
+                    description: "The language of the card/product (e.g. 'Inglés', 'Español', 'Japonés', 'Alemán', 'Francés', 'Italiano', 'Coreano', 'Chino')"
+                  },
+                  rarity: {
+                    type: Type.STRING,
+                    description: "The rarity of the card (e.g. 'Illustration Rare', 'Special Illustration Rare', 'Secret Rare', 'Common', 'Uncommon'). For sealed products, return 'Sealed Product'."
+                  },
+                  tcgplayerPrice: {
+                    type: Type.NUMBER,
+                    description: "The current estimated TCGplayer market price in USD as a floating number (e.g. 119.99)."
+                  },
+                  suggestedImageUrl: {
+                    type: Type.STRING,
+                    description: "A high-quality direct public URL to the official card art or product image, or a valid representative official image URL, or a placeholder."
+                  },
+                  confidenceScore: {
+                    type: Type.NUMBER,
+                    description: "Confidence rating from 0 to 1 of the identification."
+                  },
+                  reasoning: {
+                    type: Type.STRING,
+                    description: "A short professional explanation of how the card/product was identified and the pricing source info."
+                  }
+                },
+                required: ["type", "name", "set", "tcgplayerPrice", "confidenceScore", "reasoning", "language"]
               }
-            });
-
-            if (response && response.text) {
-              responseText = response.text;
-              console.log(`Scan successful with model: ${modelName}`);
-              break; // Success! Break the retry loop
             }
-          } catch (err: any) {
-            console.warn(`Scan failed with model ${modelName} on attempt ${attempt}:`, err.message || err);
-            lastError = err;
+          });
 
-            // Detect 429 Quota Exceeded / RESOURCE_EXHAUSTED
-            const isQuotaError = 
-              err.status === "RESOURCE_EXHAUSTED" || 
-              err.code === 429 || 
-              err.status === 429 ||
-              (err.message && (
-                err.message.includes("429") || 
-                err.message.toLowerCase().includes("quota") || 
-                err.message.toLowerCase().includes("limit") || 
-                err.message.toLowerCase().includes("exhausted")
-              ));
+          responseText = response.text || "";
+          if (responseText) {
+            console.log(`Scan successful with model: ${modelName}`);
+            break; // Success! Break the retry loop
+          }
+        } catch (err: any) {
+          console.warn(`Scan failed with model ${modelName} on attempt ${attempt}:`, err.message || err);
+          lastError = err;
 
-            if (isQuotaError) {
-              console.warn(`Quota limit reached for model ${modelName}. Skipping further retries for this model.`);
-              skipRemainingRetries = true;
-              break; // Break the retry loop for this model
-            }
+          // Detect 429 Quota Exceeded / RESOURCE_EXHAUSTED / 503 UNAVAILABLE
+          const isRetryableError = 
+            err.status === "RESOURCE_EXHAUSTED" || 
+            err.code === 429 || 
+            err.status === 429 ||
+            err.code === 503 ||
+            err.status === 503 ||
+            (err.message && (
+              err.message.includes("429") || 
+              err.message.includes("503") ||
+              err.message.toLowerCase().includes("quota") || 
+              err.message.toLowerCase().includes("limit") || 
+              err.message.toLowerCase().includes("exhausted") ||
+              err.message.toLowerCase().includes("unavailable") ||
+              err.message.toLowerCase().includes("busy")
+            ));
 
+          if (isRetryableError) {
             if (attempt < maxRetries) {
-              // Exponential backoff: 500ms, 1500ms, 3000ms
-              const delay = attempt * 1000 + 500;
+              // Exponential backoff: 2s, 4s, 8s
+              const delay = Math.pow(2, attempt) * 1000;
+              console.log(`Retrying model ${modelName} in ${delay}ms...`);
               await new Promise((resolve) => setTimeout(resolve, delay));
+            } else {
+              console.warn(`Max retries reached for model ${modelName}. Trying next model.`);
             }
+          } else {
+            // For other non-retryable errors, skip this model
+            console.warn(`Non-retryable error for model ${modelName}. Skipping.`);
+            break;
           }
         }
-        if (responseText) {
-          break; // Success! Break the model loop
-        }
-        // Small pause between switching models
-        await new Promise((resolve) => setTimeout(resolve, 600));
       }
+      if (responseText) {
+        break; // Success! Break the model loop
+      }
+    }
+
 
       if (!responseText) {
         throw new Error(
@@ -517,11 +524,23 @@ Your tasks:
       const q = buildTcgplayerQuery(query);
       const url = `https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(q)}&pageSize=8`;
       
+      const tcgApiKey = process.env.POKEMON_TCG_API_KEY;
+      const headers: any = { "User-Agent": "aistudio-build" };
+      if (tcgApiKey) {
+        headers["X-Api-Key"] = tcgApiKey;
+      }
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+
       const response = await fetch(url, {
-        headers: { "User-Agent": "aistudio-build" }
+        headers,
+        signal: controller.signal
       });
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
+        console.error(`PokemonTCG API error: ${response.status} ${response.statusText}`);
         return res.json({ suggestions: [] });
       }
 
@@ -546,8 +565,12 @@ Your tasks:
       });
 
       res.json({ suggestions });
-    } catch (error) {
-      console.error("Error in autocomplete:", error);
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        console.error("Autocomplete request timed out");
+      } else {
+        console.error("Error in autocomplete:", error);
+      }
       res.json({ suggestions: [] });
     }
   });
